@@ -1,20 +1,24 @@
-
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:provider/provider.dart';
 import 'package:task2/ui/widgets/custom_elavated_button.dart';
 import 'package:task2/utils/app_assets.dart';
 import 'package:task2/utils/app_colors.dart';
 import 'package:task2/utils/app_routes.dart';
 import 'package:task2/utils/app_styles.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+
   const LoginScreen({super.key});
 
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
 
+class _LoginScreenState extends State<LoginScreen> {
+  User? user;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,9 +32,13 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 40),
 
 
-          // TODO: Add Facebook login logic
+              // TODO: Add Facebook login logic
               CustomElavatedButton(
-                onPressed: (){
+                onPressed: () async {
+                  await signInWithFacebook(context);
+                  Navigator.pushReplacementNamed(context, AppRoutes.settingRouteName);
+
+
 
                 },
                 textName: 'Login With Facebook',
@@ -38,15 +46,15 @@ class LoginScreen extends StatelessWidget {
               ),
 
 
-               SizedBox(height: 20.h),
+              SizedBox(height: 20.h),
 
 
-          // TODO: Add Google login logic
+              // TODO: Add Google login logic
               CustomElavatedButton(
-                  onPressed: ()async{
-                     await signInWithGoogle(context);
-                    Navigator.pushReplacementNamed(context, AppRoutes.settingRouteName);
-                  },
+                onPressed: ()async{
+                  await signInWithGoogle(context);
+                  Navigator.pushReplacementNamed(context, AppRoutes.settingRouteName);
+                },
                 isIcon: true,
                 iconName:Image.asset(AppAssets.iconGoogle),
                 textName: 'Login With Google',
@@ -56,12 +64,12 @@ class LoginScreen extends StatelessWidget {
               ),
 
 
-               SizedBox(height: 30.h),
+              SizedBox(height: 30.h),
 
 
               TextButton(
                 onPressed: () {
-                 Navigator.pushReplacementNamed(context, AppRoutes.settingRouteName);
+                  Navigator.pushReplacementNamed(context, AppRoutes.settingRouteName);
                 },
                 child:  Text('Go to Settings',style: AppStyles.bold14Black,),
               )
@@ -71,6 +79,7 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
+
   Future<UserCredential?> signInWithGoogle(BuildContext context) async {
     // Trigger the authentication flow
     try {
@@ -91,5 +100,33 @@ class LoginScreen extends StatelessWidget {
     } catch (e) {
       print(e);
     }
+    return null;
   }
-}
+
+  Future<void> signInWithFacebook(BuildContext context) async {
+    try {
+      final LoginResult loginResult = await FacebookAuth.instance.login(
+        permissions: ['email', 'public_profile'],
+      );
+
+      if (loginResult.status == LoginStatus.success) {
+        final OAuthCredential facebookCredential =
+        FacebookAuthProvider.credential(loginResult.accessToken!.tokenString);
+
+        UserCredential userCredential =
+        await FirebaseAuth.instance.signInWithCredential(facebookCredential);
+
+        setState(() {
+          user = userCredential.user;
+        });
+
+        Navigator.pushReplacementNamed(context, AppRoutes.settingRouteName);
+      } else if (loginResult.status == LoginStatus.cancelled) {
+        print("User cancelled the login");
+      } else {
+        print("Facebook login failed: ${loginResult.message}");
+      }
+    } catch (e) {
+      print("Error during Facebook login: $e");
+    }
+  }  }
